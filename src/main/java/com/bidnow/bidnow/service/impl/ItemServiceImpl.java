@@ -10,6 +10,7 @@ import com.bidnow.bidnow.entity.Item;
 import com.bidnow.bidnow.mapper.ItemMapper;
 import com.bidnow.bidnow.service.ItemService;
 import lombok.RequiredArgsConstructor;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemMapper itemMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RocketMQTemplate rocketMQTemplate;
 
     /** 拍品缓存 key 前缀 */
     private static final String CACHE_KEY_PREFIX = "item:";
@@ -180,7 +182,8 @@ public class ItemServiceImpl implements ItemService {
         itemMapper.updateById(item);
 
         // 数据库已更新 → 删缓存，下次查询自动重建
-        redisTemplate.delete(CACHE_KEY_PREFIX + id);
+        // 异步删除缓存——发消息到 RocketMQ，消费者处理，接口不阻塞
+        rocketMQTemplate.convertAndSend("cache-delete", CACHE_KEY_PREFIX + id);
 
         ItemVO vo = new ItemVO();
         BeanUtils.copyProperties(item, vo);
@@ -203,7 +206,8 @@ public class ItemServiceImpl implements ItemService {
             throw new BizException("只有草稿状态的拍品才能删除");
         }
         itemMapper.deleteById(id);
-        redisTemplate.delete(CACHE_KEY_PREFIX + id);
+        // 异步删除缓存——发消息到 RocketMQ，消费者处理，接口不阻塞
+        rocketMQTemplate.convertAndSend("cache-delete", CACHE_KEY_PREFIX + id);
     }
 
     // ==================== 私有方法 ====================

@@ -21,3 +21,8 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
+
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: bidnow-producer
