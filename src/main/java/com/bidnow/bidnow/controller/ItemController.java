@@ -53,6 +53,17 @@ public class ItemController {
     }
 
     /**
+     * 上架拍品。
+     * POST /api/items/{id}/publish
+     */
+    @PostMapping("/{id}/publish")
+    public Result<Void> publish(@PathVariable Long id) {
+        Long sellerId = 1L;
+        itemService.publish(id, sellerId);
+        return Result.success();
+    }
+
+    /**
      * 结束拍卖。
      * POST /api/items/{id}/close
      */

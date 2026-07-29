@@ -17,8 +17,12 @@ public interface ItemService {
     void delete(Long id, Long sellerId);
 
     /**
+     * 上架拍品（DRAFT → ACTIVE）。
+     */
+    void publish(Long id, Long sellerId);
+
+    /**
      * 结束拍卖（卖家手动关闭或系统到期自动关闭）。
-     * 乐观锁防并发——同一拍品被多个线程同时关闭时，只有一个成功。
      */
     void close(Long id, Long sellerId);
 }

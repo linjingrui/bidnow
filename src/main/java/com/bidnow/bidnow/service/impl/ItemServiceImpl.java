@@ -216,8 +216,30 @@ public class ItemServiceImpl implements ItemService {
     }
 
     /**
-     * 结束拍卖。
-     * 关闭是最终操作，直接 updateById，不用乐观锁（BidSuccessConsumer 那边有乐观锁防并发）。
+     * 上架拍品（DRAFT → ACTIVE）。
+     */
+    @Override
+    public void publish(Long id, Long sellerId) {
+        Item item = itemMapper.selectById(id);
+        if (item == null) {
+            throw new BizException(404, "拍品不存在");
+        }
+        if (!item.getSellerId().equals(sellerId)) {
+            throw new BizException(403, "只能上架自己的拍品");
+        }
+        if (!"DRAFT".equals(item.getStatus())) {
+            throw new BizException("只有草稿状态的拍品才能上架");
+        }
+
+        item.setStatus("ACTIVE");
+        item.setUpdatedAt(LocalDateTime.now());
+        itemMapper.updateById(item);
+
+        rocketMQTemplate.convertAndSend("cache-delete", CACHE_KEY_PREFIX + id);
+    }
+
+    /**
+     * 结束拍卖（ACTIVE → ENDED）。
      */
     @Override
     public void close(Long id, Long sellerId) {
