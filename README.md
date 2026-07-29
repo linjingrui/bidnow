@@ -110,6 +110,17 @@ mvn spring-boot:run
 
 或 IDEA 直接运行 `BidnowApplication.main()`。
 
+### 关闭服务
+
+**必须按顺序关闭，避免下次启动失败：**
+
+```bash
+D:\rocketmq\bin\mqshutdown.cmd broker
+D:\rocketmq\bin\mqshutdown.cmd namesrv
+```
+
+> 如果异常退出导致下次 Broker 起不来，删除用户目录下的 `store` 文件夹后重试。
+
 ### 测试
 
 ```bash

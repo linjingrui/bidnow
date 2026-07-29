@@ -47,8 +47,19 @@ public class ItemController {
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        Long sellerId = 1L; // 暂时写死
+        Long sellerId = 1L;
         itemService.delete(id, sellerId);
+        return Result.success();
+    }
+
+    /**
+     * 结束拍卖。
+     * POST /api/items/{id}/close
+     */
+    @PostMapping("/{id}/close")
+    public Result<Void> close(@PathVariable Long id) {
+        Long sellerId = 1L;
+        itemService.close(id, sellerId);
         return Result.success();
     }
 }

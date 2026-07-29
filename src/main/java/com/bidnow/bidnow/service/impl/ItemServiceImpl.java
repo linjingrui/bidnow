@@ -215,6 +215,30 @@ public class ItemServiceImpl implements ItemService {
         rocketMQTemplate.convertAndSend("cache-delete", CACHE_KEY_PREFIX + id);
     }
 
+    /**
+     * 结束拍卖。
+     * 关闭是最终操作，直接 updateById，不用乐观锁（BidSuccessConsumer 那边有乐观锁防并发）。
+     */
+    @Override
+    public void close(Long id, Long sellerId) {
+        Item item = itemMapper.selectById(id);
+        if (item == null) {
+            throw new BizException(404, "拍品不存在");
+        }
+        if (!item.getSellerId().equals(sellerId)) {
+            throw new BizException(403, "只能结束自己的拍品");
+        }
+        if (!"ACTIVE".equals(item.getStatus()) && !"PENDING".equals(item.getStatus())) {
+            throw new BizException("当前状态不允许结束拍卖");
+        }
+
+        item.setStatus("ENDED");
+        item.setUpdatedAt(LocalDateTime.now());
+        itemMapper.updateById(item);
+
+        rocketMQTemplate.convertAndSend("cache-delete", CACHE_KEY_PREFIX + id);
+    }
+
     // ==================== 私有方法 ====================
 
     /**

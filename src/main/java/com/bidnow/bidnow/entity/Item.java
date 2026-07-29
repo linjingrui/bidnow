@@ -3,6 +3,7 @@ package com.bidnow.bidnow.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -51,7 +52,8 @@ public class Item {
     /** 每次加价幅度 */
     private BigDecimal bidIncrement;
 
-    /** 乐观锁版本号 */
+    /** 乐观锁版本号——updateById 时自动 WHERE version=? AND SET version=?+1 */
+    @Version
     private Integer version;
 
     /** 创建时间 */

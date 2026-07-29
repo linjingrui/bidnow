@@ -1,6 +1,8 @@
 package com.bidnow.bidnow.service.impl;
 
 import com.bidnow.bidnow.common.BizException;
+import com.bidnow.bidnow.entity.Item;
+import com.bidnow.bidnow.mapper.ItemMapper;
 import com.bidnow.bidnow.service.BidService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ public class BidServiceImpl implements BidService {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final RocketMQTemplate rocketMQTemplate;
+    private final ItemMapper itemMapper;
 
     /** Redis 当前价 key 前缀 */
     private static final String PRICE_KEY_PREFIX = "item:price:";
@@ -44,6 +47,15 @@ public class BidServiceImpl implements BidService {
      */
     @Override
     public String bid(Long itemId, Long userId, BigDecimal amount) {
+        // 0. 校验拍品状态，只有 ACTIVE 才能出价
+        Item item = itemMapper.selectById(itemId);
+        if (item == null) {
+            throw new BizException(404, "拍品不存在");
+        }
+        if (!"ACTIVE".equals(item.getStatus())) {
+            throw new BizException("拍品未上架，无法出价");
+        }
+
         String priceKey = PRICE_KEY_PREFIX + itemId;
 
         // 执行 Lua 脚本：KEYS = [priceKey]，ARGV = [出价金额]
