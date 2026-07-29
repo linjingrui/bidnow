@@ -32,7 +32,7 @@ public class CacheDeleteConsumer implements RocketMQListener<String> {
         try {
             log.info("MQ消费者：准备删除缓存 key={}", cacheKey);
             Boolean deleted = redisTemplate.delete(cacheKey);
-            if (Boolean.TRUE.equals(deleted)) {
+            if (deleted) {
                 log.info("MQ消费者：缓存已删除 key={}", cacheKey);
             } else {
                 log.info("MQ消费者：key={} 不存在，跳过", cacheKey);

@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -24,6 +25,7 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemMapper itemMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final RocketMQTemplate rocketMQTemplate;
 
     /** 拍品缓存 key 前缀 */
@@ -60,6 +62,9 @@ public class ItemServiceImpl implements ItemService {
         item.setCreatedAt(LocalDateTime.now());
         item.setUpdatedAt(LocalDateTime.now());
         itemMapper.insert(item);
+
+        // 初始化 Redis 里的当前价（纯数字字符串，供 Lua 脚本 tonumber 解析）
+        stringRedisTemplate.opsForValue().set("item:price:" + item.getId(), request.getStartPrice().toString());
 
         ItemVO vo = new ItemVO();
         BeanUtils.copyProperties(item, vo);
