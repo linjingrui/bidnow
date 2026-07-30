@@ -217,6 +217,7 @@ public class ItemServiceImpl implements ItemService {
 
     /**
      * 上架拍品（DRAFT → ACTIVE）。
+     * 同时初始化 Redis 里的结束时间（用于防截杀延长）和自动补齐拍卖时间段。
      */
     @Override
     public void publish(Long id, Long sellerId) {
@@ -231,9 +232,24 @@ public class ItemServiceImpl implements ItemService {
             throw new BizException("只有草稿状态的拍品才能上架");
         }
 
+        // 自动补齐：未设置开始时间 → 立即开始，未设置结束时间 → 7 天后
+        if (item.getStartTime() == null) {
+            item.setStartTime(LocalDateTime.now());
+        }
+        if (item.getEndTime() == null) {
+            item.setEndTime(LocalDateTime.now().plusDays(7));
+        }
+
         item.setStatus("ACTIVE");
         item.setUpdatedAt(LocalDateTime.now());
         itemMapper.updateById(item);
+
+        // 把结束时间写入 Redis（毫秒时间戳），供 bid.lua 做防截杀判断
+        long endTimeMillis = item.getEndTime()
+                .atZone(java.time.ZoneId.of("Asia/Shanghai"))
+                .toInstant()
+                .toEpochMilli();
+        stringRedisTemplate.opsForValue().set("item:endtime:" + id, String.valueOf(endTimeMillis));
 
         rocketMQTemplate.convertAndSend("cache-delete", CACHE_KEY_PREFIX + id);
     }

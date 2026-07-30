@@ -34,12 +34,17 @@ public class BidSuccessConsumer implements RocketMQListener<String> {
 
     @Override
     public void onMessage(String message) {
+        // 消息格式：itemId:newPrice:userId:endTimeMillis
         String[] parts = message.split(":");
         Long itemId = Long.valueOf(parts[0]);
         String newPrice = parts[1];
         Long userId = Long.valueOf(parts[2]);
 
-        log.info("BidSuccessConsumer：处理出价 itemId={}, newPrice={}, userId={}", itemId, newPrice, userId);
+        // 防截杀延长的时间（可能为空/为0，兼容旧消息格式）
+        Long endTimeMillis = parts.length >= 4 ? Long.parseLong(parts[3]) : 0L;
+
+        log.info("BidSuccessConsumer：处理出价 itemId={}, newPrice={}, userId={}, endTime={}",
+                itemId, newPrice, userId, endTimeMillis);
 
         // 1. 读拍品（拿到当前 version）
         Item item = itemMapper.selectById(itemId);
@@ -56,6 +61,16 @@ public class BidSuccessConsumer implements RocketMQListener<String> {
 
         // 3. 更新价格（乐观锁：WHERE version=读时的值）
         item.setCurrentPrice(new java.math.BigDecimal(newPrice));
+
+        // 4. 防截杀：同步延长后的结束时间到 MySQL
+        if (endTimeMillis > 0) {
+            java.time.LocalDateTime newEndTime = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(endTimeMillis),
+                    java.time.ZoneId.of("Asia/Shanghai"));
+            item.setEndTime(newEndTime);
+            log.info("BidSuccessConsumer：结束时间延长至 {}", newEndTime);
+        }
+
         int rows = itemMapper.updateById(item);
 
         if (rows == 0) {
@@ -66,7 +81,7 @@ public class BidSuccessConsumer implements RocketMQListener<String> {
 
         log.info("BidSuccessConsumer：MySQL已更新 itemId={}, newPrice={}", itemId, newPrice);
 
-        // 4. 删缓存
+        // 5. 删缓存
         redisTemplate.delete("item:" + itemId);
         log.info("BidSuccessConsumer：缓存已删除 itemId={}", itemId);
     }
