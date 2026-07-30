@@ -228,8 +228,8 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getSellerId().equals(sellerId)) {
             throw new BizException(403, "只能删除自己的拍品");
         }
-        if (!"DRAFT".equals(item.getStatus())) {
-            throw new BizException("只有草稿状态的拍品才能删除");
+        if ("ACTIVE".equals(item.getStatus())) {
+            throw new BizException("拍卖中的拍品不能删除，请先下架");
         }
         itemMapper.deleteById(id);
         // 异步删除缓存——发消息到 RocketMQ，消费者处理，接口不阻塞
