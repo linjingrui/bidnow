@@ -33,6 +33,16 @@ public class ItemController {
         return Result.success(page);
     }
 
+    /** 我的拍品列表。放在 /{id} 前面，避免 Spring 把 "my" 当成 id 解析。 */
+    @GetMapping("/my")
+    public Result<Page<ItemVO>> myItems(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        Long userId = (Long) request.getAttribute("userId");
+        Page<ItemVO> page = itemService.myItems(pageNum, pageSize, userId);
+        return Result.success(page);
+    }
+
     @GetMapping("/{id}")
     public Result<ItemVO> getById(@PathVariable Long id) {
         ItemVO vo = itemService.getById(id);

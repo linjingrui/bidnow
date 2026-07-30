@@ -10,6 +10,12 @@ public interface ItemService {
 
     Page<ItemVO> page(Integer pageNum, Integer pageSize, String category);
 
+    /**
+     * 查询当前用户的拍品列表（"我的拍品"页面）。
+     * frontend: GET /api/items/my
+     */
+    Page<ItemVO> myItems(Integer pageNum, Integer pageSize, Long sellerId);
+
     ItemVO getById(Long id);
 
     ItemVO update(Long id, Long sellerId, ItemCreateRequest request);

@@ -95,6 +95,27 @@ public class ItemServiceImpl implements ItemService {
     }
 
     /**
+     * "我的拍品"列表 —— 按卖家ID筛选。
+     */
+    @Override
+    public Page<ItemVO> myItems(Integer pageNum, Integer pageSize, Long sellerId) {
+        LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Item::getSellerId, sellerId);
+        wrapper.orderByDesc(Item::getCreatedAt);
+
+        Page<Item> page = new Page<>(pageNum, pageSize);
+        Page<Item> itemPage = itemMapper.selectPage(page, wrapper);
+
+        Page<ItemVO> voPage = new Page<>(pageNum, pageSize, itemPage.getTotal());
+        voPage.setRecords(itemPage.getRecords().stream().map(item -> {
+            ItemVO vo = new ItemVO();
+            BeanUtils.copyProperties(item, vo);
+            return vo;
+        }).toList());
+        return voPage;
+    }
+
+    /**
      * 拍品详情 —— 逻辑过期 + 互斥锁防缓存击穿。
      *
      * 流程：
