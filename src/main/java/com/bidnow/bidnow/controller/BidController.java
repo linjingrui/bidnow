@@ -23,7 +23,7 @@ public class BidController {
     public Result<String> bid(@PathVariable Long id, @RequestBody BidRequest request) {
         // 临时写死 userId=2（出价者），后续接登录功能
         Long userId = 2L;
-        String result = bidService.bid(id, userId, request.getAmount());
+        String result = bidService.bid(id, userId, request.getAmount(), request.getMaxAmount());
         return Result.success(result);
     }
 }
