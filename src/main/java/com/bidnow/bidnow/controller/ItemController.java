@@ -5,6 +5,7 @@ import com.bidnow.bidnow.common.Result;
 import com.bidnow.bidnow.dto.ItemCreateRequest;
 import com.bidnow.bidnow.dto.ItemVO;
 import com.bidnow.bidnow.service.ItemService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,12 +15,12 @@ import org.springframework.web.bind.annotation.*;
 public class ItemController {
 
     private final ItemService itemService;
+    private final HttpServletRequest request;
 
     @PostMapping
-    public Result<ItemVO> create(@RequestBody ItemCreateRequest request) {
-        // 暂时写死卖家ID=1，登录功能后续补上
-        Long sellerId = 1L;
-        ItemVO vo = itemService.create(sellerId, request);
+    public Result<ItemVO> create(@RequestBody ItemCreateRequest req) {
+        Long userId = (Long) request.getAttribute("userId");
+        ItemVO vo = itemService.create(userId, req);
         return Result.success(vo);
     }
 
@@ -39,38 +40,30 @@ public class ItemController {
     }
 
     @PutMapping("/{id}")
-    public Result<ItemVO> update(@PathVariable Long id, @RequestBody ItemCreateRequest request) {
-        Long sellerId = 1L; // 暂时写死
-        ItemVO vo = itemService.update(id, sellerId, request);
+    public Result<ItemVO> update(@PathVariable Long id, @RequestBody ItemCreateRequest req) {
+        Long userId = (Long) request.getAttribute("userId");
+        ItemVO vo = itemService.update(id, userId, req);
         return Result.success(vo);
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        Long sellerId = 1L;
-        itemService.delete(id, sellerId);
+        Long userId = (Long) request.getAttribute("userId");
+        itemService.delete(id, userId);
         return Result.success();
     }
 
-    /**
-     * 上架拍品。
-     * POST /api/items/{id}/publish
-     */
     @PostMapping("/{id}/publish")
     public Result<Void> publish(@PathVariable Long id) {
-        Long sellerId = 1L;
-        itemService.publish(id, sellerId);
+        Long userId = (Long) request.getAttribute("userId");
+        itemService.publish(id, userId);
         return Result.success();
     }
 
-    /**
-     * 结束拍卖。
-     * POST /api/items/{id}/close
-     */
     @PostMapping("/{id}/close")
     public Result<Void> close(@PathVariable Long id) {
-        Long sellerId = 1L;
-        itemService.close(id, sellerId);
+        Long userId = (Long) request.getAttribute("userId");
+        itemService.close(id, userId);
         return Result.success();
     }
 }

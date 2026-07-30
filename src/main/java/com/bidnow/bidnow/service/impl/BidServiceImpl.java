@@ -92,13 +92,11 @@ public class BidServiceImpl implements BidService {
         //    注意：赢家可能不是当前出价人！（别人的代理上限更高，系统帮他追了价）
         ResolveResult resolved = proxyBidResolver.resolve(itemId, userId, effectiveMax, increment);
 
-        // 4. 发 MQ —— 用解析后的 实际赢家 + 实际价格
-        if (resolved.priceChanged()) {
-            String endTimeStr = stringRedisTemplate.opsForValue().get(endTimeKey);
-            String msg = itemId + ":" + resolved.winningPrice() + ":" + resolved.winnerUserId()
-                    + ":" + (endTimeStr != null ? endTimeStr : "0");
-            rocketMQTemplate.convertAndSend("bid-success", msg);
-        }
+        // 4. 发 MQ —— 用解析后的 实际赢家 + 实际价格，异步更新 MySQL + 删缓存
+        String endTimeStr = stringRedisTemplate.opsForValue().get(endTimeKey);
+        String msg = itemId + ":" + resolved.winningPrice() + ":" + resolved.winnerUserId()
+                + ":" + (endTimeStr != null ? endTimeStr : "0");
+        rocketMQTemplate.convertAndSend("bid-success", msg);
 
         // 5. 构造返回信息
         StringBuilder sb = new StringBuilder();

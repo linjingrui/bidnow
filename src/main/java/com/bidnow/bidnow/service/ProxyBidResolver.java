@@ -65,10 +65,18 @@ public class ProxyBidResolver {
         }
         bids.sort((a, b) -> b.getValue().compareTo(a.getValue())); // 降序
 
-        Map.Entry<Long, BigDecimal> top1 = bids.get(0);                            // 第一名
-        BigDecimal top2Amount = bids.size() >= 2 ? bids.get(1).getValue() : BigDecimal.ZERO; // 第二名
+        Map.Entry<Long, BigDecimal> top1 = bids.get(0);
+
+        // 只有一个人出价 → 没有竞争，价格维持现有（Lua 已设置），不重新计算
+        if (bids.size() == 1) {
+            String priceKey = PRICE_KEY_PREFIX + itemId;
+            String cur = stringRedisTemplate.opsForValue().get(priceKey);
+            BigDecimal curPrice = cur != null ? new BigDecimal(cur) : top1.getValue();
+            return new ResolveResult(top1.getKey(), curPrice, false);
+        }
 
         // 4. 算：当前价 = min(第二名上限 + 加价幅度, 第一名上限)
+        BigDecimal top2Amount = bids.get(1).getValue();
         BigDecimal winningPrice = top2Amount.add(increment).min(top1.getValue());
         // 去掉多余小数位
         winningPrice = winningPrice.setScale(2, RoundingMode.HALF_UP);

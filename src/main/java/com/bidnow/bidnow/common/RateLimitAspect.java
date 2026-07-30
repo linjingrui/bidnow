@@ -55,7 +55,7 @@ public class RateLimitAspect {
                 String.valueOf(expire)
         );
 
-        if (result != null && result == 0) {
+        if (result == 0) {
             throw new BizException(429, "操作太频繁了，请稍后再试");
         }
 
@@ -63,22 +63,20 @@ public class RateLimitAspect {
         return joinPoint.proceed();
     }
 
-    /** 从请求头或 session 里拿当前用户 ID。暂时写死，后续接登录。 */
+    /** 从 request 里拿当前用户 ID（LoginInterceptor 解析 JWT 后写入的）。 */
     private String getCurrentUserId() {
         try {
             ServletRequestAttributes attrs =
                     (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
                 HttpServletRequest request = attrs.getRequest();
-                // TODO 后续从 token 解析
-                // 临时：支持 header 传 userId 来模拟多用户
-                String headerUserId = request.getHeader("X-UserId");
-                if (headerUserId != null && !headerUserId.isEmpty()) {
-                    return headerUserId;
+                Long userId = (Long) request.getAttribute("userId");
+                if (userId != null) {
+                    return userId.toString();
                 }
             }
         } catch (Exception ignored) {
         }
-        return "1"; // 默认用户
+        return "0"; // 未登录用户，兜底
     }
 }
