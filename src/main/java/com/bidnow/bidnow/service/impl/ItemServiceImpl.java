@@ -77,6 +77,8 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public Page<ItemVO> page(Integer pageNum, Integer pageSize, String category) {
         LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<>();
+        // 大厅只展示拍卖中的拍品
+        wrapper.eq(Item::getStatus, "ACTIVE");
         if (category != null && !category.isEmpty()) {
             wrapper.eq(Item::getCategory, category);
         }
@@ -198,8 +200,8 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getSellerId().equals(sellerId)) {
             throw new BizException(403, "只能修改自己的拍品");
         }
-        if (!"DRAFT".equals(item.getStatus())) {
-            throw new BizException("只有草稿状态的拍品才能修改");
+        if (!"DRAFT".equals(item.getStatus()) && !"ENDED".equals(item.getStatus())) {
+            throw new BizException("只有草稿或已结束的拍品才能修改");
         }
 
         BeanUtils.copyProperties(request, item);
@@ -249,16 +251,25 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getSellerId().equals(sellerId)) {
             throw new BizException(403, "只能上架自己的拍品");
         }
-        if (!"DRAFT".equals(item.getStatus())) {
-            throw new BizException("只有草稿状态的拍品才能上架");
+        // DRAFT 首次上架 / ENDED 重新上架
+        if (!"DRAFT".equals(item.getStatus()) && !"ENDED".equals(item.getStatus())) {
+            throw new BizException("只有草稿或已结束的拍品才能上架");
         }
 
-        // 自动补齐：未设置开始时间 → 立即开始，未设置结束时间 → 7 天后
-        if (item.getStartTime() == null) {
+        // 自动补齐：未设置开始时间 → 立即开始；未设置结束时间（或重新上架）→ 7 天后
+        boolean isRePublish = "ENDED".equals(item.getStatus());
+        if (item.getStartTime() == null || isRePublish) {
             item.setStartTime(LocalDateTime.now());
         }
-        if (item.getEndTime() == null) {
+        if (item.getEndTime() == null || isRePublish) {
             item.setEndTime(LocalDateTime.now().plusDays(7));
+        }
+
+        // 重新上架：重置当前价为起拍价，清理前一次出价数据
+        if (isRePublish) {
+            item.setCurrentPrice(item.getStartPrice());
+            stringRedisTemplate.delete("item:price:" + id);
+            stringRedisTemplate.delete("item:proxy:" + id);
         }
 
         item.setStatus("ACTIVE");

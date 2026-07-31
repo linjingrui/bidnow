@@ -88,17 +88,28 @@ public class BidServiceImpl implements BidService {
             throw new BizException("出价失败，当前价已更新为 " + current);
         }
 
-        // 3. Lua 通过 → 存入代理上限 + 解析排名
+        // 3. 快照：resolve() 之前记录当前最高出价者（用于后续"被超越"通知）
+        Long previousWinner = proxyBidResolver.getCurrentWinner(itemId);
+
+        // 4. Lua 通过 → 存入代理上限 + 解析排名
         //    注意：赢家可能不是当前出价人！（别人的代理上限更高，系统帮他追了价）
         ResolveResult resolved = proxyBidResolver.resolve(itemId, userId, effectiveMax, increment);
 
-        // 4. 发 MQ —— 用解析后的 实际赢家 + 实际价格，异步更新 MySQL + 删缓存
+        // 5. 发 MQ 更新 MySQL + 删缓存（原逻辑）
         String endTimeStr = stringRedisTemplate.opsForValue().get(endTimeKey);
         String msg = itemId + ":" + resolved.winningPrice() + ":" + resolved.winnerUserId()
                 + ":" + (endTimeStr != null ? endTimeStr : "0");
         rocketMQTemplate.convertAndSend("bid-success", msg);
 
-        // 5. 构造返回信息
+        // 6. 发 MQ 触发通知（新增）
+        //    格式：itemId:newPrice:winnerUserId:previousWinnerUserId:biddingUserId:endTimeMillis:itemTitle
+        String notifyMsg = itemId + ":" + resolved.winningPrice() + ":" + resolved.winnerUserId()
+                + ":" + (previousWinner != null ? previousWinner : "0")
+                + ":" + userId + ":" + (endTimeStr != null ? endTimeStr : "0")
+                + ":" + item.getTitle();
+        rocketMQTemplate.convertAndSend("bid-notify", notifyMsg);
+
+        // 7. 构造返回信息
         StringBuilder sb = new StringBuilder();
         if (resolved.winnerUserId().equals(userId)) {
             sb.append("出价成功");

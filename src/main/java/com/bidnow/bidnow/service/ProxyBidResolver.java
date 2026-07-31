@@ -97,4 +97,25 @@ public class ProxyBidResolver {
 
         return new ResolveResult(top1.getKey(), winningPrice, priceChanged);
     }
+
+    /**
+     * 只读查询：当前最高出价者是谁（不改任何数据）。
+     * 用于在 resolve() 之前快照"被超越的人"，然后发通知。
+     *
+     * @param itemId 拍品ID
+     * @return 当前最高出价者 userId，无人出价则返回 null
+     */
+    public Long getCurrentWinner(Long itemId) {
+        Map<Object, Object> entries = stringRedisTemplate.opsForHash()
+                .entries(PROXY_KEY_PREFIX + itemId);
+        if (entries.isEmpty()) return null;
+
+        return entries.entrySet().stream()
+                .map(e -> new AbstractMap.SimpleEntry<>(
+                        Long.valueOf(e.getKey().toString()),
+                        new BigDecimal(e.getValue().toString())))
+                .max(Map.Entry.comparingByValue())  // 按出价上限降序取最大
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
 }

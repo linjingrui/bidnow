@@ -63,6 +63,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- WebSocket / STOMP 实时推送 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- MyBatis-Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
