@@ -28,8 +28,9 @@ public class ItemController {
     public Result<Page<ItemVO>> list(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String category) {
-        Page<ItemVO> page = itemService.page(pageNum, pageSize, category);
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword) {
+        Page<ItemVO> page = itemService.page(pageNum, pageSize, category, keyword);
         return Result.success(page);
     }
 

@@ -75,12 +75,19 @@ public class ItemServiceImpl implements ItemService {
      * 拍品分页列表。
      */
     @Override
-    public Page<ItemVO> page(Integer pageNum, Integer pageSize, String category) {
+    public Page<ItemVO> page(Integer pageNum, Integer pageSize, String category, String keyword) {
         LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<>();
         // 大厅只展示拍卖中的拍品
         wrapper.eq(Item::getStatus, "ACTIVE");
         if (category != null && !category.isEmpty()) {
             wrapper.eq(Item::getCategory, category);
+        }
+        // 标题关键字模糊搜索（拍品量级小，LIKE 足够；%kw% 走不了索引，量大要换 ES）
+        if (keyword != null && !keyword.isEmpty()) {
+            String kw = keyword.trim();
+            if (!kw.isEmpty()) {
+                wrapper.like(Item::getTitle, kw);
+            }
         }
         wrapper.orderByDesc(Item::getCreatedAt);
 

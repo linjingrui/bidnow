@@ -8,7 +8,7 @@ public interface ItemService {
 
     ItemVO create(Long sellerId, ItemCreateRequest request);
 
-    Page<ItemVO> page(Integer pageNum, Integer pageSize, String category);
+    Page<ItemVO> page(Integer pageNum, Integer pageSize, String category, String keyword);
 
     /**
      * 查询当前用户的拍品列表（"我的拍品"页面）。
